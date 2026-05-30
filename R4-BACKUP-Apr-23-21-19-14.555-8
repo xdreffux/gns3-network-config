@@ -1,0 +1,186 @@
+
+!
+! Last configuration change at 21:17:11 UTC Thu Apr 23 2026 by admin
+! NVRAM config last updated at 21:19:14 UTC Thu Apr 23 2026 by admin
+!
+version 15.2
+service timestamps debug datetime msec
+service timestamps log datetime msec
+service password-encryption
+!
+hostname R4
+!
+boot-start-marker
+boot-end-marker
+!
+!
+security authentication failure rate 3 log
+security passwords min-length 8
+enable secret 5 $1$LGwK$3aF0z0UADfN0jVeUtjRKZ.
+!
+no aaa new-model
+no ip icmp rate-limit unreachable
+!
+!
+!
+ip dhcp excluded-address 192.16.64.129
+ip dhcp excluded-address 192.16.64.130
+ip dhcp excluded-address 192.16.64.131
+ip dhcp excluded-address 192.16.64.161
+ip dhcp excluded-address 192.16.64.193
+ip dhcp excluded-address 192.16.64.225
+!
+ip dhcp pool POOL_VLAN10
+ network 192.16.64.128 255.255.255.224
+ dns-server 8.8.8.8 
+ default-router 192.16.64.131 
+!
+ip dhcp pool POOL_VLAN20
+ network 192.16.64.160 255.255.255.224
+ default-router 192.16.64.161 
+ dns-server 8.8.8.8 
+!
+ip dhcp pool POOL_VLAN30
+ network 192.16.64.192 255.255.255.224
+ default-router 192.16.64.193 
+ dns-server 8.8.8.8 
+!
+ip dhcp pool POOL_VLAN40
+ network 192.16.64.224 255.255.255.224
+ dns-server 8.8.8.8 
+ default-router 192.16.64.225 
+!
+!
+!
+ip domain name soc.local
+ip name-server 8.8.8.8
+ip cef
+login block-for 30 attempts 3 within 60
+login delay 3
+login on-failure log
+login on-success log
+no ipv6 cef
+!
+!
+multilink bundle-name authenticated
+!
+!
+archive
+ log config
+  logging enable
+  logging size 200
+  notify syslog contenttype plaintext
+  hidekeys
+ path tftp://192.16.64.141/$h-BACKUP-$t
+ write-memory
+ time-period 5
+!
+!
+!
+!
+!
+username admin privilege 15 secret 5 $1$T5jX$QbgkQsUvlhEX3vy38jCLc0
+!
+!
+!
+!
+!
+ip tcp synwait-time 5
+ip ssh version 2
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+interface Loopback0
+ ip address 4.4.4.4 255.255.255.255
+!
+interface FastEthernet0/0
+ no ip address
+ ip access-group VLAN10 out
+ duplex full
+!
+interface FastEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.16.64.130 255.255.255.224
+ ip access-group VLAN10 out
+ no ip proxy-arp
+ standby version 2
+ standby 10 ip 192.16.64.131
+ standby 10 preempt
+ standby 10 authentication SOC_PASS
+ ip ospf message-digest-key 1 md5 7 061C0E301D6E3E2A3D
+!
+interface FastEthernet1/0
+ ip address 192.16.64.13 255.255.255.252
+ ip ospf message-digest-key 1 md5 7 131F16035A2C331913
+ duplex full
+!
+interface FastEthernet2/0
+ ip address 192.16.64.17 255.255.255.252
+ ip ospf message-digest-key 1 md5 7 12030406432B3B3712
+ duplex full
+!
+router ospf 1
+ area 10 authentication message-digest
+ passive-interface default
+ no passive-interface FastEthernet1/0
+ no passive-interface FastEthernet2/0
+ network 4.4.4.4 0.0.0.0 area 10
+ network 192.16.64.128 0.0.0.31 area 10
+ network 192.16.64.0 0.0.0.255 area 10
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+!
+ip access-list extended VLAN10
+ permit udp any host 192.16.64.141 eq tftp
+ permit udp any host 192.16.64.141 eq syslog
+ permit ip 192.16.64.128 0.0.0.31 192.16.64.128 0.0.0.31
+ permit tcp any 192.16.64.128 0.0.0.31 established
+ permit udp any eq domain 192.16.64.128 0.0.0.31
+ permit udp any eq bootps any eq bootpc
+ permit icmp any host 192.16.64.141 echo
+ permit icmp any host 192.16.64.141 echo-reply
+ permit icmp any 192.16.64.128 0.0.0.31 echo-reply
+ permit icmp any 192.16.64.128 0.0.0.31 unreachable
+ permit icmp any 192.16.64.128 0.0.0.31 time-exceeded
+ permit udp any host 192.16.64.141 gt 1023
+ permit tcp any eq 22 192.16.64.128 0.0.0.31 established
+!
+logging trap debugging
+logging host 192.16.64.141
+!
+!
+!
+control-plane
+!
+!
+line con 0
+ exec-timeout 1 0
+ privilege level 15
+ logging synchronous
+ login local
+ stopbits 1
+line aux 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ stopbits 1
+line vty 0 4
+ exec-timeout 1 0
+ privilege level 15
+ login local
+ transport input ssh
+!
+ntp master 9
+ntp server 192.16.64.129
+!
+end
